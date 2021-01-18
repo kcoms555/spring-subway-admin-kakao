@@ -3,6 +3,8 @@ package subway.line;
 import org.springframework.util.ReflectionUtils;
 import subway.exceptions.exception.LineDuplicatedException;
 import subway.exceptions.exception.LineNotFoundException;
+import subway.section.SectionDao;
+import subway.station.StationResponse;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -49,13 +51,18 @@ public class LineDao {
 
     public List<LineResponse> getLineResponses() {
         return lines.stream()
-                .map(line -> new LineResponse(line.getId(), line.getName(), line.getColor(), line.getStationResponses()))
+                .map(line -> new LineResponse(line.getId(), line.getName(), line.getColor(), getStationResponsesByLine(line)))
                 .collect(Collectors.toList());
+    }
+
+    private List<StationResponse> getStationResponsesByLine(Line line) {
+        return SectionDao.getInstance().getStationResponsesByLineId(line.getId());
     }
 
     public LineResponse getLineResponseById(Long lineId) {
         return lines.stream().filter(line -> line.getId().equals(lineId))
-                .map(line -> new LineResponse(line.getId(), line.getName(), line.getColor(), line.getStationResponses()))
+                .map(line -> new LineResponse(line.getId(), line.getName(), line.getColor(),
+                        getStationResponsesByLine(line)))
                 .findAny().orElseThrow(LineNotFoundException::new);
     }
 

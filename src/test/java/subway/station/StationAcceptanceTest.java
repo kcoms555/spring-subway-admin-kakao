@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import subway.AcceptanceTest;
+import subway.line.LineDao;
+import subway.section.SectionDao;
 
 import java.util.Arrays;
 import java.util.List;
@@ -23,7 +25,9 @@ public class StationAcceptanceTest extends AcceptanceTest {
 
     @BeforeEach
     void initialize() {
+        LineDao.clear();
         StationDao.clear();
+        SectionDao.clear();
     }
 
     @DisplayName("지하철역을 생성한다.")

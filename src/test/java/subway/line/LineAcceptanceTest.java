@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import subway.AcceptanceTest;
+import subway.section.SectionDao;
+import subway.station.StationDao;
 import subway.station.StationResponse;
 
 import java.util.Arrays;
@@ -29,6 +31,8 @@ public class LineAcceptanceTest extends AcceptanceTest {
     public void setUp() {
         super.setUp();
         LineDao.clear();
+        StationDao.clear();
+        SectionDao.clear();
 
         // given
         강남역 = 지하철역_등록되어_있음("강남역");

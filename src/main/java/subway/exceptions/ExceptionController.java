@@ -33,4 +33,8 @@ public class ExceptionController {
         return ResponseEntity.badRequest().body("노선에 역이 존재하지 않거나, 노선에 역이 현재 2개뿐이 없습니다.");
     }
 
+    @ExceptionHandler(SectionDistanceException.class)
+    public ResponseEntity SectionDistanceException() {
+        return ResponseEntity.badRequest().body("입력된 거리가 올바르지 않습니다.");
+    }
 }
