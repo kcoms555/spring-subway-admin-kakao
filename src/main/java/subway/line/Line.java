@@ -8,9 +8,7 @@ import subway.station.StationDao;
 import subway.station.StationResponse;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class Line {
     public static final Long NULL_SECTION_POINT = 0L; // 일급 컬렉션으로 만드는 것이 좋아보임.
@@ -18,17 +16,16 @@ public class Line {
     private String name;
     private String color;
     private int extraFare;
-    private Long upStationEndPointId;
-    private Long downStationEndPointId;
-    private Map<Long, Section> sections; //일급 컬렉션으로 만드는 것이 좋아보임.
+    private Long upSectionEndPointId;
+    private Long downSectionEndPointId;
 
-    public Line(String name, String color, Long upStationId, Long downStationId, int distance) {
+    public Line(Long id, String name, String color, int extraFare, Long upStationId, Long downStationId) {
+        this.id = id;
         this.name = name;
         this.color = color;
-        this.upStationEndPointId = upStationId;
-        this.downStationEndPointId = downStationId;
-        this.sections = new HashMap<>();
-        initializeLine(upStationId, downStationId, distance);
+        this.extraFare = extraFare;
+        this.upSectionEndPointId = upStationId;
+        this.downSectionEndPointId = downStationId;
     }
 
     private void initializeLine(Long upStationId, Long downStationId, int distance) {
@@ -79,18 +76,10 @@ public class Line {
 
 
     private void updateEndPoints() {
-        upStationEndPointId = sections.get(NULL_SECTION_POINT).getDownStationId();
-        downStationEndPointId = sections.get(NULL_SECTION_POINT).getUpStationId();
+        upSectionEndPointId = sections.get(NULL_SECTION_POINT).getDownStationId();
+        downSectionEndPointId = sections.get(NULL_SECTION_POINT).getUpStationId();
     }
 
-    public void update(LineRequest lineRequest) {
-        if (lineRequest.getName() != null) {
-            this.name = lineRequest.getName();
-        }
-        if (lineRequest.getColor() != null) {
-            this.color = lineRequest.getColor();
-        }
-    }
 
     public void deleteSection(Long stationId) {
         if (!sections.containsKey(stationId) || areThereOnlyTwoStations()) {
@@ -102,14 +91,14 @@ public class Line {
     }
 
     private boolean areThereOnlyTwoStations() {
-        return sections.get(upStationEndPointId).getDownStationId().equals(downStationEndPointId);
+        return sections.get(upSectionEndPointId).getDownStationId().equals(downSectionEndPointId);
     }
 
     public List<StationResponse> getStationResponses() {
-        Long nowId = upStationEndPointId;
+        Long nowId = upSectionEndPointId;
         List<StationResponse> stationResponses = new ArrayList<>();
         while (!stationIsEnd(nowId)) {
-            stationResponses.add(new StationResponse(nowId, StationDao.getInstance().getStationById(nowId).getName()));
+            stationResponses.add(new StationResponse(nowId, StationDao.getInstance().getStationBy(nowId).getName()));
             nowId = sections.get(nowId).getDownStationId();
         }
         return stationResponses;
@@ -131,14 +120,7 @@ public class Line {
         return color;
     }
 
-    @Override
-    public String toString() {
-        return "Line{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", color='" + color + '\'' +
-                ", extraFare=" + extraFare +
-                '}';
+    public LineResponse toResponse() {
+        return new LineResponse(id, name, color, getStationResponses());
     }
-
 }

@@ -3,20 +3,24 @@ package subway.line.section;
 import subway.exceptions.exception.SectionSameStationException;
 
 public class Section {
+    private Long id;
     private Long stationId;
+    private Long lineId;
 
-    private Section myUpStation;
-    private Section myDownStation;
+    private Section upSection;
+    private Section downSection;
 
-    private Distance upDistance;
-    private Distance downDistance;
+    private Distance upDistance = new Distance();
+    private Distance downDistance = new Distance();
 
-    public Section(Long stationId) {
+    public Section(Long id, Long stationId, Long lineId){
+        this(stationId, lineId);
+        this.id = id;
+    }
+
+    public Section(Long stationId, Long lineId){
         this.stationId = stationId;
-        this.myUpStation = null;
-        this.myDownStation = null;
-        this.upDistance = new Distance();
-        this.downDistance = new Distance();
+        this.lineId = lineId;
     }
 
     static public void connectStations(Section upSection, Section downSection, int distance) {
@@ -31,35 +35,35 @@ public class Section {
         }
 
         if (upSection.hasDownStation()) {
-            directConnect(downSection, upSection.myDownStation, upSection.downDistance.calculateDistance(distance));
+            directConnect(downSection, upSection.downSection, upSection.downDistance.calculateDistance(distance));
             directConnect(upSection, downSection, distance);
             return;
         }
 
         if (downSection.hasUpStation()) {
-            directConnect(downSection.myUpStation, upSection, downSection.upDistance.calculateDistance(distance));
+            directConnect(downSection.upSection, upSection, downSection.upDistance.calculateDistance(distance));
             directConnect(upSection, downSection, distance);
         }
     }
 
     private boolean hasUpStation() {
-        return this.myUpStation != null;
+        return this.upSection != null;
     }
 
     private boolean hasDownStation() {
-        return this.myDownStation != null;
+        return this.downSection != null;
     }
 
     static private void directConnect(Section upSection, Section downSection, int distance) {
-        upSection.myDownStation = downSection;
+        upSection.downSection = downSection;
         upSection.downDistance.setDistance(distance);
-        downSection.myUpStation = upSection;
+        downSection.upSection = upSection;
         downSection.upDistance.setDistance(distance);
     }
 
     public void deleteSection() {
         int distance = Distance.addDistance(upDistance, downDistance);
-        directConnect(myUpStation, myDownStation, distance);
+        directConnect(upSection, downSection, distance);
     }
 
     public boolean validDownDistance(int distance) {
@@ -71,15 +75,18 @@ public class Section {
     }
 
     public Long getDownStationId() {
-        return this.myDownStation.getStationId();
+        return this.downSection.getStationId();
     }
 
     public Long getUpStationId() {
-        return this.myUpStation.getStationId();
+        return this.upSection.getStationId();
     }
 
     public Long getStationId() {
         return stationId;
+    }
+    public Long getLineId() {
+        return lineId;
     }
 
 }

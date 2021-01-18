@@ -13,6 +13,12 @@ repositories {
 }
 
 dependencies {
+    // spring jdbc
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+
+    // database
+    runtimeOnly 'com.h2database:h2'
+
     // spring
     implementation 'org.springframework.boot:spring-boot-starter-web'
 

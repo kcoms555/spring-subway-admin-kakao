@@ -1,79 +1,70 @@
 package subway.line;
 
-import org.springframework.util.ReflectionUtils;
-import subway.exceptions.exception.LineDuplicatedException;
-import subway.exceptions.exception.LineNotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
+import subway.line.section.Section;
+import subway.line.section.SectionDao;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Repository
 public class LineDao {
-    private static LineDao lineDao = new LineDao();
+    private JdbcTemplate jdbcTemplate;
+    private SectionDao sectionDao;
 
-    private Long seq = 0L;
-    private List<Line> lines = new ArrayList<>();
-
-    public static void clear() {
-        getInstance().lines.clear();
-        getInstance().seq = 0L;
+    LineDao(JdbcTemplate jdbcTemplate){
+        this.jdbcTemplate = jdbcTemplate;
+        this.sectionDao = new SectionDao(jdbcTemplate);
     }
 
-    public Line save(Line line) {
-        Line foundLine = lines.stream()
-                .filter(tmpLine -> tmpLine.getName().equals(line.getName()))
-                .findAny()
-                .orElse(null);
-        if (foundLine != null)
-            throw new LineDuplicatedException();
-        Line persistLine = createNewObject(line);
-        lines.add(persistLine);
-        return persistLine;
+    public void clear() {
+        jdbcTemplate.update("DELETE * from LINE");
     }
 
-    private Line createNewObject(Line line) {
-        Field field = ReflectionUtils.findField(Line.class, "id");
-        field.setAccessible(true);
-        ReflectionUtils.setField(field, line, ++seq);
+    public Line create(String name, String color, Long upStationId, Long downStationId, int distance) {
+        jdbcTemplate.update("INSERT INTO LINE(name, color) VALUES(?, ?)", name, color);
+        Line line = getLineBy(name);
+        Section upSection = sectionDao.create(line.getId(), upStationId);
         return line;
     }
 
-    public void deleteById(Long id) {
-        lines.removeIf(it -> it.getId().equals(id));
+    public void deleteBy(Long id) {
+        jdbcTemplate.update("DELETE FROM LINE WHERE id = ?", id);
     }
 
-    public List<Line> findAll() {
-        return lines;
-    }
-
-    public List<LineResponse> getLineResponses() {
-        return lines.stream()
+    public List<LineResponse> getAllLineResponses() {
+        return getAllLines().stream()
                 .map(line -> new LineResponse(line.getId(), line.getName(), line.getColor(), line.getStationResponses()))
                 .collect(Collectors.toList());
     }
 
-    public LineResponse getLineResponseById(Long lineId) {
-        return lines.stream().filter(line -> line.getId().equals(lineId))
-                .map(line -> new LineResponse(line.getId(), line.getName(), line.getColor(), line.getStationResponses()))
-                .findAny().orElseThrow(LineNotFoundException::new);
+    private static RowMapper<Line> lineMapper = ((rs, rowNum) -> new Line(
+            rs.getLong("id"), rs.getString("name"), rs.getString("color"),
+            rs.getInt("extra_fare"), rs.getLong("up_section_end_point_id"), rs.getLong("down_section_end_point_id")
+    ));
+
+    public List<Line> getAllLines() {
+        return jdbcTemplate.query("SELECT * FROM LINE", lineMapper);
     }
 
-    public Line getLineById(Long lineId) {
-        return lines.stream().filter(line -> line.getId().equals(lineId))
-                .findAny().orElseThrow(LineNotFoundException::new);
+    public Line getLineBy(String name) {
+        return jdbcTemplate.queryForObject("SELECT * FROM LINE WHERE name = ?", Line.class, name);
     }
 
-    public static LineDao getInstance() {
-        return lineDao;
+    public Line getLineBy(Long lineId) {
+        return jdbcTemplate.queryForObject("SELECT * FROM LINE WHERE id = ?", Line.class, lineId);
     }
 
-    @Override
-    public String toString() {
-        return "lineDao{" +
-                "seq=" + seq +
-                ", liness=" + lines.stream().map(Line::toString).collect(Collectors.joining(", ")) +
-                '}';
+    public void update(Long lineId, LineRequest lineRequest) {
+        if (lineRequest.getName() != null) {
+            jdbcTemplate.update("UPDATE LINE SET name = ? WHERE id = ?", lineRequest.getName(), lineId);
+        }
+        if (lineRequest.getColor() != null) {
+            jdbcTemplate.update("UPDATE LINE SET color = ? WHERE id = ?", lineRequest.getColor(), lineId);
+        }
     }
 
 }

@@ -24,11 +24,9 @@ public class Station {
         return name;
     }
 
-    @Override
-    public String toString() {
-        return "{ " + name + " " + id + " }";
+    public StationResponse toResponse() {
+        return new StationResponse(id, name);
     }
-
 }
 
 

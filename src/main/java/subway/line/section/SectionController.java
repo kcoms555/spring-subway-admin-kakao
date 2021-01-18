@@ -8,11 +8,13 @@ import subway.line.LineResponse;
 
 @RestController
 public class SectionController {
+    private SectionDao sectionDao;
+
     @PostMapping("/lines/{lineId}/sections")
     public ResponseEntity<LineResponse> createSection(@PathVariable Long lineId, @RequestBody SectionRequest sectionRequest) {
-        Line line = LineDao.getInstance().getLineById(lineId);
-        line.makeSection(sectionRequest.getUpStationId(), sectionRequest.getDownStationId(), sectionRequest.getDistance());
-
+        Section upSection = sectionDao.getSectionBy(lineId, sectionRequest.getUpStationId());
+        Section downSection = sectionDao.getSectionBy(lineId, sectionRequest.getDownStationId());
+        Section.connectStations(upSection, downSection, sectionRequest.getDistance());
         return ResponseEntity.ok().build();
     }
 
