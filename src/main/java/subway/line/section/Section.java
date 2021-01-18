@@ -1,6 +1,6 @@
 package subway.line.section;
 
-import subway.exceptions.exception.SectionNullException;
+import subway.exceptions.exception.SectionConnectException;
 import subway.station.Station;
 import subway.station.StationDao;
 import subway.station.StationResponse;
@@ -18,39 +18,70 @@ public class Section {
         this.stationId = stationId;
         this.up = null;
         this.down = null;
+        this.upDistance = 0;
+        this.downDistance = 0;
     }
-/*
-                up                              down
-처음              강남                           광교
-원하는결과    강남        양재           광교
-지금 결과       강남        양재
- */
+
     public static void connect(Section downStation, Section upStation, int distance) {
-        if(upStation.down == null) {
+        if(isThereNoConnectionBetween(downStation, upStation)) {
             directConnect(downStation, upStation, distance);
             return;
         }
-        else{
-                //  원래 강남 --- 광교하고 존재하고 /  현재 들어온게 upStartion이 강남  downStation이 양재인 경우
-
-                // 양재의 down 이 광교가 되어야함
-                downStation.down = upStation.down;
-
-                // 강남의 down 이 양재가 되어야함
-                upStation.down = downStation;
-
-                // 광교의 up 이 양재가 되어야함
-                downStation.down.up = downStation;
-
-                // 양재의 up이 강남이 되어야함
-                downStation.up = upStation;
-                return;
+        if(isNewlyAdded(downStation)) {
+            Section downdownStation = upStation.down;
+            int downdown_down_distance = upStation.downDistance - distance;
+            int down_up_distance = distance;
+            directConnect(downStation, upStation, down_up_distance);
+            directConnect(downdownStation, downStation, downdown_down_distance);
+            return;
         }
+        if(isNewlyAdded(upStation)){
+            Section upupStation = downStation.up;
+            int up_upup_distance = downStation.upDistance - distance;
+            int down_up_distance = distance;
+            directConnect(downStation, upStation, down_up_distance);
+            directConnect(upStation, upupStation, up_upup_distance);
+            return;
+        }
+        throw new SectionConnectException("불가능한 연결 요청입니다");
     }
 
+    private static boolean isNewlyAdded(Section station) {
+        return !station.hasUp() && !station.hasDown();
+    }
+
+    private static boolean isThereNoConnectionBetween(Section downStation, Section upStation) {
+        return !downStation.hasUp() && !upStation.hasDown();
+    }
+
+    public static void remove(Section section) {
+        if(section.hasUp()){
+            section.up.down = section.down;
+            section.up.downDistance = section.upDistance + section.downDistance;
+        }
+        if(section.hasDown()){
+            section.down.up = section.up;
+            section.down.upDistance = section.upDistance + section.downDistance;
+        }
+        section.up = null;
+        section.down = null;
+        section.upDistance = 0;
+        section.downDistance = 0;
+    }
+
+    public boolean hasUp(){
+        return this.up != null;
+    }
+
+    public boolean hasDown(){
+        return this.down != null;
+    }
 
     // 역 사이를 체크 안하고 직접 연결
     public static void directConnect(Section downSection, Section upSection, int distance) {
+        if(distance <= 0){
+            throw new SectionConnectException("distance는 1 이상이여야 합니다");
+        }
         downSection.setUp(upSection);
         downSection.setUpDistance(distance);
         upSection.setDown(downSection);

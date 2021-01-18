@@ -21,4 +21,11 @@ public class SectionController {
         return ResponseEntity.ok().build();
     }
 
+    @DeleteMapping("/lines/{lineId}/sections")
+    public ResponseEntity deleteSection(@PathVariable Long lineId, @RequestParam Long stationId) {
+        Line line = LineDao.getInstance().getLineById(lineId);
+        line.removeSection(stationId);
+
+        return ResponseEntity.ok().build();
+    }
 }
