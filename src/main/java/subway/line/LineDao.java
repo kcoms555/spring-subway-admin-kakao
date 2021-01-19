@@ -1,86 +1,77 @@
 package subway.line;
 
-import org.springframework.util.ReflectionUtils;
-import subway.exceptions.exception.LineDuplicatedException;
-import subway.exceptions.exception.LineNotFoundException;
-import subway.section.SectionDao;
-import subway.station.StationResponse;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.stereotype.Repository;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
+@Repository
 public class LineDao {
-    private static LineDao lineDao = new LineDao();
+    private final JdbcTemplate jdbcTemplate;
 
-    private Long seq = 0L;
-    private List<Line> lines = new ArrayList<>();
-
-    public static void clear() {
-        getInstance().lines.clear();
-        getInstance().seq = 0L;
+    public LineDao(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
+
 
     public Line save(Line line) {
-        Line foundLine = lines.stream()
-                .filter(tmpLine -> tmpLine.getName().equals(line.getName()))
-                .findAny()
-                .orElse(null);
-        if (foundLine != null)
-            throw new LineDuplicatedException();
-        Line persistLine = createNewObject(line);
-        lines.add(persistLine);
-        return persistLine;
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(con -> {
+            PreparedStatement psmt = con.prepareStatement(
+                    "insert into line (name, color) values (?, ?)",
+                    Statement.RETURN_GENERATED_KEYS
+            );
+            psmt.setString(1, line.getName());
+            psmt.setString(2, line.getColor());
+            return psmt;
+        }, keyHolder);
+
+        Long id = (Long) keyHolder.getKey();
+        return new Line(id, line.getName(), line.getColor());
     }
 
-    private Line createNewObject(Line line) {
-        Field field = ReflectionUtils.findField(Line.class, "id");
-        field.setAccessible(true);
-        ReflectionUtils.setField(field, line, ++seq);
-        return line;
+    public void update(Line line) {
+        int update = jdbcTemplate.update("update line set name = ?, color = ? where id = ?", line.getName(), line.getColor(), line.getId());
+        if (update == 0) {
+            throw new IllegalArgumentException("일치하는 노선이 없습니다");
+        }
     }
 
     public void deleteById(Long id) {
-        lines.removeIf(it -> it.getId().equals(id));
+        jdbcTemplate.update("delete from line where id = ?", id);
     }
 
     public List<Line> findAll() {
-        return lines;
+        return jdbcTemplate.query("select * from line", new LineMapper());
     }
 
-    public List<LineResponse> getLineResponses() {
-        return lines.stream()
-                .map(line -> new LineResponse(line.getId(), line.getName(), line.getColor(), getStationResponsesByLine(line)))
-                .collect(Collectors.toList());
+    public Optional<Line> findById(Long id) {
+        try {
+            return Optional.ofNullable(jdbcTemplate.queryForObject("select * from line where id = ?", new LineMapper(), id));
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
     }
 
-    private List<StationResponse> getStationResponsesByLine(Line line) {
-        return SectionDao.getInstance().getStationResponsesByLineId(line.getId());
-    }
-
-    public LineResponse getLineResponseById(Long lineId) {
-        return lines.stream().filter(line -> line.getId().equals(lineId))
-                .map(line -> new LineResponse(line.getId(), line.getName(), line.getColor(),
-                        getStationResponsesByLine(line)))
-                .findAny().orElseThrow(LineNotFoundException::new);
-    }
-
-    public Line getLineById(Long lineId) {
-        return lines.stream().filter(line -> line.getId().equals(lineId))
-                .findAny().orElseThrow(LineNotFoundException::new);
-    }
-
-    public static LineDao getInstance() {
-        return lineDao;
-    }
-
-    @Override
-    public String toString() {
-        return "lineDao{" +
-                "seq=" + seq +
-                ", liness=" + lines.stream().map(Line::toString).collect(Collectors.joining(", ")) +
-                '}';
+    private final static class LineMapper implements RowMapper<Line> {
+        @Override
+        public Line mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return new Line(
+                    rs.getLong("id"),
+                    rs.getString("name"),
+                    rs.getString("color")
+            );
+        }
     }
 
 }

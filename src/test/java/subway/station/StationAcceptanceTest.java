@@ -25,9 +25,7 @@ public class StationAcceptanceTest extends AcceptanceTest {
 
     @BeforeEach
     void initialize() {
-        LineDao.clear();
-        StationDao.clear();
-        SectionDao.clear();
+        super.setUp();
     }
 
     @DisplayName("지하철역을 생성한다.")
@@ -35,8 +33,6 @@ public class StationAcceptanceTest extends AcceptanceTest {
     void createStation() {
         // when
         ExtractableResponse<Response> response = 지하철역_생성_요청(강남역);
-        System.out.println(StationDao.getInstance().toString());
-
         // then
         지하철역_생성됨(response);
     }
@@ -48,9 +44,6 @@ public class StationAcceptanceTest extends AcceptanceTest {
         StationResponse stationResponse1 = 지하철역_등록되어_있음(강남역);
         StationResponse stationResponse2 = 지하철역_등록되어_있음(역삼역);
 
-        System.out.println(stationResponse1.toString());
-        System.out.println(stationResponse2.toString());
-        System.out.println(StationDao.getInstance().toString());
         // when
         ExtractableResponse<Response> response = 지하철역_목록_조회_요청();
 
@@ -64,7 +57,6 @@ public class StationAcceptanceTest extends AcceptanceTest {
     void deleteStation() {
         // given
         StationResponse stationResponse = 지하철역_등록되어_있음(강남역);
-        System.out.println(StationDao.getInstance().toString());
 
         // when
         ExtractableResponse<Response> response = 지하철역_제거_요청(stationResponse);

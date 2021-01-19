@@ -17,7 +17,7 @@ public class Sections {
         this.sections = new ArrayList<>();
     }
 
-    private Sections(List<Section> sections) {
+    public Sections(List<Section> sections) {
         this.sections = sections;
     }
 
@@ -104,7 +104,4 @@ public class Sections {
         }
     }
 
-    public void removeStation(Long lineId, Long stationId) {
-        sections.removeIf(section -> (section.getStationId().equals(stationId) && section.getLineId().equals(lineId)));
-    }
 }
