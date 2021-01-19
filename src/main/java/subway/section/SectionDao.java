@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import subway.station.Station;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -21,6 +22,12 @@ import java.util.Optional;
 public class SectionDao {
     private final JdbcTemplate jdbcTemplate;
     public static final int INITIAL_DISTANCE = 0;
+
+    private final static RowMapper<Section> sectionMapper = ((rs, rowNum) ->
+            new Section(rs.getLong("id"),
+                    rs.getLong("line_id"),
+                    rs.getLong("station_id"),
+                    rs.getInt("distance")));
 
     public SectionDao(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
@@ -44,22 +51,11 @@ public class SectionDao {
     }
 
     public List<Section> findAll() {
-        return jdbcTemplate.query("select * from section ", new SectionDao.SectionMapper());
+        return jdbcTemplate.query("select * from section ", sectionMapper);
     }
 
     public List<Section> findByLineId(Long lineId) {
-        try {
-            return optionalToList(Optional.ofNullable(jdbcTemplate.queryForObject("select * from section where line_id = ?",
-                    new SectionDao.SectionMapper(), lineId)));
-        } catch (EmptyResultDataAccessException e) {
-            return optionalToList(Optional.empty());
-        }
-    }
-
-    public List<Section> optionalToList (Optional<Section> opt) {
-        return opt.isPresent()
-                ? Collections.singletonList(opt.get())
-                : Collections.emptyList();
+        return jdbcTemplate.query("select * from section where line_id = ?", sectionMapper, lineId);
     }
 
     public void makeSection(Long upStationId, Long downStationId, int distance, Long lineId) {
@@ -70,8 +66,6 @@ public class SectionDao {
                 sectionsByLineId.calculateRelativeDistance(upStationId,downStationId,distance)));
     }
 
-
-
     public void deleteByLineIdAndStationId(Long lineId, Long stationId) {
         Sections sectionsByLineId = new Sections(findByLineId(lineId));
         sectionsByLineId.validateDeleteStation(stationId);
@@ -81,18 +75,6 @@ public class SectionDao {
     public void LineInitialize(Long lineId, Long upStationId, Long downStationId, int distance) {
         save(new Section(lineId, upStationId, INITIAL_DISTANCE));
         save(new Section(lineId, downStationId, distance));
-    }
-
-    private final static class SectionMapper implements RowMapper<Section> {
-        @Override
-        public Section mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new Section(
-                    rs.getLong("id"),
-                    rs.getLong("line_id"),
-                    rs.getLong("station_id"),
-                    rs.getInt("distance")
-            );
-        }
     }
 
 

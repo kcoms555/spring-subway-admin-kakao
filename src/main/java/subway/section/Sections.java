@@ -67,7 +67,6 @@ public class Sections {
                 .findFirst()
                 .map(Section::getDistance)
                 .hashCode();
-
     }
 
     private void distanceValidate(int upDistance, int downDistance) {

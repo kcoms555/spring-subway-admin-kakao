@@ -68,7 +68,7 @@ public class LineController {
     }
 
     public LineResponse getLineResponseById(Long lineId) {
-        return lineDao.findAll().stream().filter(line -> line.getId().equals(lineId))
+        return lineDao.findById(lineId).stream()
                 .map(line -> new LineResponse(line.getId(), line.getName(), line.getColor(),
                         getStationResponsesByLine(line)))
                 .findAny().orElseThrow(LineNotFoundException::new);

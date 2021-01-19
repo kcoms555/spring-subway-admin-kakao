@@ -1,17 +1,19 @@
 package subway.line;
 
-
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import subway.exceptions.exception.LineDuplicatedException;
+import subway.section.Section;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,8 +25,11 @@ public class LineDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-
     public Line save(Line line) {
+        if(existBy(line.getName())){
+            throw new LineDuplicatedException();
+        }
+
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(con -> {
             PreparedStatement psmt = con.prepareStatement(
@@ -38,6 +43,10 @@ public class LineDao {
 
         Long id = (Long) keyHolder.getKey();
         return new Line(id, line.getName(), line.getColor());
+    }
+
+    public boolean existBy(String name) {
+        return jdbcTemplate.queryForObject("select count(*) from line where name = ?", int.class, name) != 0;
     }
 
     public void update(Line line) {
@@ -55,12 +64,8 @@ public class LineDao {
         return jdbcTemplate.query("select * from line", new LineMapper());
     }
 
-    public Optional<Line> findById(Long id) {
-        try {
-            return Optional.ofNullable(jdbcTemplate.queryForObject("select * from line where id = ?", new LineMapper(), id));
-        } catch (EmptyResultDataAccessException e) {
-            return Optional.empty();
-        }
+    public List<Line> findById(Long id) {
+            return jdbcTemplate.query("select * from line where id = ?", lineMapper, id);
     }
 
     private final static class LineMapper implements RowMapper<Line> {

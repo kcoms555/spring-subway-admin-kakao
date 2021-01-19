@@ -55,8 +55,6 @@ public class StationDao {
         }
     }
 
-
-
     public List<StationResponse> getStationResponses() {
         return findAll().stream()
                 .map(station -> new StationResponse(station.getId(), station.getName()))
