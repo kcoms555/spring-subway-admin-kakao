@@ -1,6 +1,5 @@
 package subway.line;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -15,9 +14,9 @@ public class LineDao {
     private JdbcTemplate jdbcTemplate;
     private SectionDao sectionDao;
 
-    LineDao(JdbcTemplate jdbcTemplate){
+    LineDao(JdbcTemplate jdbcTemplate, SectionDao sectionDao){
         this.jdbcTemplate = jdbcTemplate;
-        this.sectionDao = new SectionDao(jdbcTemplate);
+        this.sectionDao = sectionDao;
     }
 
     public void clear() {
@@ -28,6 +27,9 @@ public class LineDao {
         jdbcTemplate.update("INSERT INTO LINE(name, color) VALUES(?, ?)", name, color);
         Line line = getLineBy(name);
         Section upSection = sectionDao.create(line.getId(), upStationId);
+        Section downSection = sectionDao.create(line.getId(), downStationId);
+        Section.directConnect(downSection, upSection, distance);
+        updateSections(line.getId(), upSection.getId(), downSection.getId());
         return line;
     }
 
@@ -58,7 +60,11 @@ public class LineDao {
         return jdbcTemplate.queryForObject("SELECT * FROM LINE WHERE id = ?", Line.class, lineId);
     }
 
-    public void update(Long lineId, LineRequest lineRequest) {
+    public void updateSections(Long lineId, Long upSectionId, Long downSectionId) {
+        jdbcTemplate.update("UPDATE LINE SET up_section_end_point_id = ?, down_section_end_porint_id WHERE id = ?", upSectionId, downSectionId, lineId);
+    }
+
+    public void updateLineNameOrColor(Long lineId, LineRequest lineRequest) {
         if (lineRequest.getName() != null) {
             jdbcTemplate.update("UPDATE LINE SET name = ? WHERE id = ?", lineRequest.getName(), lineId);
         }

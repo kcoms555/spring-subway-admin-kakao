@@ -3,6 +3,7 @@ package subway.line;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import subway.station.StationDao;
 
 import java.net.URI;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.List;
 @RestController
 public class LineController {
     private LineDao lineDao;
+    private StationDao stationDao;
 
     @PostMapping("/lines")
     public ResponseEntity<LineResponse> createLine(@RequestBody LineRequest lineRequest) {
@@ -36,7 +38,7 @@ public class LineController {
 
     @PutMapping(value = "/lines/{lineId}")
     public ResponseEntity putLine(@PathVariable Long lineId, @RequestBody LineRequest lineRequest) {
-        lineDao.update(lineId, lineRequest);
+        lineDao.updateLineNameOrColor(lineId, lineRequest);
         return ResponseEntity.ok().build();
     }
 

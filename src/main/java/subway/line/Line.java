@@ -1,17 +1,36 @@
 package subway.line;
 
-import subway.exceptions.exception.SectionDeleteException;
-import subway.exceptions.exception.SectionNoStationException;
-import subway.exceptions.exception.SectionSameStationException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import subway.exceptions.exception.SectionConnectException;
+import subway.exceptions.exception.SectionRemoveException;
 import subway.line.section.Section;
+import subway.line.section.SectionDao;
+import subway.line.section.Sections;
+import subway.station.Station;
 import subway.station.StationDao;
 import subway.station.StationResponse;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+@Component
 public class Line {
-    public static final Long NULL_SECTION_POINT = 0L; // 일급 컬렉션으로 만드는 것이 좋아보임.
+    private static LineDao lineDao;
+    private static SectionDao sectionDao;
+    private static StationDao stationDao;
+
+    @Autowired
+    public void setSectionDao(SectionDao sectionDao) {
+        Line.sectionDao = sectionDao;
+    }
+
+    @Autowired
+    public void setLineDao(LineDao lineDao) {
+        Line.lineDao = lineDao;
+    }
+
     private Long id;
     private String name;
     private String color;
@@ -19,93 +38,65 @@ public class Line {
     private Long upSectionEndPointId;
     private Long downSectionEndPointId;
 
-    public Line(Long id, String name, String color, int extraFare, Long upStationId, Long downStationId) {
+    public Line(){}
+
+    public Line(Long id, String name, String color, int extraFare, Long upSectionEndPointId ,Long downSectionEndPointId) {
         this.id = id;
         this.name = name;
         this.color = color;
         this.extraFare = extraFare;
-        this.upSectionEndPointId = upStationId;
-        this.downSectionEndPointId = downStationId;
+        this.upSectionEndPointId = upSectionEndPointId;
+        this.downSectionEndPointId = downSectionEndPointId;
     }
 
-    private void initializeLine(Long upStationId, Long downStationId, int distance) {
-        sections.put(NULL_SECTION_POINT, new Section(NULL_SECTION_POINT));
-        sections.put(upStationId, new Section(upStationId));
-        sections.put(downStationId, new Section(downStationId));
-        Section.connectStations(sections.get(NULL_SECTION_POINT), sections.get(upStationId), Integer.MAX_VALUE);
-        Section.connectStations(sections.get(downStationId), sections.get(NULL_SECTION_POINT), Integer.MAX_VALUE);
-        Section.connectStations(sections.get(upStationId), sections.get(downStationId), distance);
-    }
-
-    public void makeSection(Long upStationId, Long downStationId, int distance) {
-        if (isThereTwoStations(upStationId, downStationId)) {
-            throw new SectionSameStationException();
+    public void connectSection(Section upSection, Section downSection, int distance) {
+        if(!sectionDao.has(upSection) && !sectionDao.has(downSection)){
+            throw new SectionConnectException("두 역 모두 기존 노선에 등록되지 않은 역입니다");
         }
-
-        if (canMakeDownSection(upStationId, distance)) {
-            sections.put(downStationId, new Section(downStationId));
-            connect(upStationId, downStationId, distance);
-            return;
+        if(sectionDao.has(upSection) && sectionDao.has(downSection)){
+            throw new SectionConnectException("두 역 모두 기존 노선에 등록된 역입니다");
         }
+        Section.connect(upSection, downSection, distance);
+        extend();
+    }
 
-        if (canMakeUpSection(downStationId, distance)) {
-            sections.put(upStationId, new Section(upStationId));
-            connect(upStationId, downStationId, distance);
-            return;
+    private void extend() {
+        Section upSection = sectionDao.getSectionBy(upSectionEndPointId);
+        Section downSection = sectionDao.getSectionBy(downSectionEndPointId);
+        //TODO
+        while(upSection.hasUp()){
+            upSection = upSection.getUp();
+            upSectionEndPointId = upSection.getStationId();
         }
-
-        throw new SectionNoStationException();
-    }
-
-    private boolean canMakeUpSection(Long downStationId, int distance) {
-        return sections.containsKey(downStationId) && sections.get(downStationId).validUpDistance(distance);
-    }
-
-    private boolean canMakeDownSection(Long upStationId, int distance) {
-        return sections.containsKey(upStationId) && sections.get(upStationId).validDownDistance(distance);
-    }
-
-    private boolean isThereTwoStations(Long stationId1, Long stationId2) {
-        return sections.containsKey(stationId1) && sections.containsKey(stationId2);
-    }
-
-    private void connect(Long upStationId, Long downStationId, int distance) {
-        Section.connectStations(sections.get(upStationId), sections.get(downStationId), distance);
-        updateEndPoints();
-    }
-
-
-    private void updateEndPoints() {
-        upSectionEndPointId = sections.get(NULL_SECTION_POINT).getDownStationId();
-        downSectionEndPointId = sections.get(NULL_SECTION_POINT).getUpStationId();
-    }
-
-
-    public void deleteSection(Long stationId) {
-        if (!sections.containsKey(stationId) || areThereOnlyTwoStations()) {
-            throw new SectionDeleteException();
+        while(downSection.hasDown()){
+            downSection = downSection.getDown();
+            downSectionEndPointId = downSection.getStationId();
         }
-        sections.get(stationId).deleteSection();
-        sections.remove(stationId);
-        updateEndPoints();
+        lineDao.updateSections(id, upSectionEndPointId, downSectionEndPointId);
     }
 
-    private boolean areThereOnlyTwoStations() {
-        return sections.get(upSectionEndPointId).getDownStationId().equals(downSectionEndPointId);
+    public void removeByStationId(Long stationId) {
+        if(sectionDao.size() <= 2){
+            throw new SectionRemoveException("등록된 역의 크기가 2개 이하라 더이상 제거할 수 없습니다");
+        }
+        if(stationId.equals(upSectionEndPointId)){
+            this.upSectionEndPointId = sectionDao.getSectionBy(upSectionEndPointId).getDown().getStationId();
+        }
+        if(stationId.equals(downSectionEndPointId)){
+            this.downSectionEndPointId = sectionDao.getSectionBy(downSectionEndPointId).getUp().getStationId();
+        }
+        sectionDao.deleteBy(sectionDao.getSectionBy(id, stationId).getId());
     }
 
+    //상행 종점에서 하행 종점까지 순서대로 반환
     public List<StationResponse> getStationResponses() {
-        Long nowId = upSectionEndPointId;
-        List<StationResponse> stationResponses = new ArrayList<>();
-        while (!stationIsEnd(nowId)) {
-            stationResponses.add(new StationResponse(nowId, StationDao.getInstance().getStationBy(nowId).getName()));
-            nowId = sections.get(nowId).getDownStationId();
+        List<StationResponse> tmpStationIds = new ArrayList<>();
+        Section head = sectionDao.getSectionBy(upSectionEndPointId);
+        while (head != null) {
+            tmpStationIds.add(stationDao.getStationBy(head.getStationId()).toResponse());
+            head = head.getDown();
         }
-        return stationResponses;
-    }
-
-    private boolean stationIsEnd(Long nowId) {
-        return nowId.equals(NULL_SECTION_POINT);
+        return tmpStationIds;
     }
 
     public Long getId() {
@@ -120,7 +111,11 @@ public class Line {
         return color;
     }
 
-    public LineResponse toResponse() {
+    public int getExtraFare() {
+        return extraFare;
+    }
+
+    public LineResponse toResponse(){
         return new LineResponse(id, name, color, getStationResponses());
     }
 }

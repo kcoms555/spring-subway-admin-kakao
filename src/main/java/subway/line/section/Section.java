@@ -1,92 +1,162 @@
 package subway.line.section;
 
-import subway.exceptions.exception.SectionSameStationException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import subway.exceptions.exception.SectionConnectException;
 
+@Component
 public class Section {
+    private static SectionDao sectionDao;
+
+    @Autowired
+    public void setSectionDao(SectionDao sectionDao) {
+        Section.sectionDao = sectionDao;
+    }
+
+
     private Long id;
-    private Long stationId;
     private Long lineId;
+    private Long stationId;
 
-    private Section upSection;
-    private Section downSection;
+    private Long upId;
+    private Long downId;
 
-    private Distance upDistance = new Distance();
-    private Distance downDistance = new Distance();
+    private int upDistance;
+    private int downDistance;
 
-    public Section(Long id, Long stationId, Long lineId){
-        this(stationId, lineId);
+    public Section(){}
+
+    public Section(Long id, Long lineId, Long stationId) {
+        this(lineId, stationId);
         this.id = id;
     }
 
-    public Section(Long stationId, Long lineId){
-        this.stationId = stationId;
+    public Section(Long lineId, Long stationId) {
+        this.id = null;
         this.lineId = lineId;
+        this.stationId = stationId;
+        this.upId = null;
+        this.downId = null;
+        this.upDistance = 0;
+        this.downDistance = 0;
     }
 
-    static public void connectStations(Section upSection, Section downSection, int distance) {
-
-        if (upSection.hasDownStation() && downSection.hasUpStation()) {
-            throw new SectionSameStationException();
-        }
-
-        if (!upSection.hasDownStation() && !downSection.hasUpStation()) {
-            directConnect(upSection, downSection, distance);
+    public static void connect(Section downStation, Section upStation, int distance) {
+        if(isThereNoConnectionBetween(downStation, upStation)) {
+            directConnect(downStation, upStation, distance);
             return;
         }
-
-        if (upSection.hasDownStation()) {
-            directConnect(downSection, upSection.downSection, upSection.downDistance.calculateDistance(distance));
-            directConnect(upSection, downSection, distance);
+        if(isNewlyAdded(downStation)) {
+            Section downdownStation = upStation.getDown();
+            int downdown_down_distance = upStation.downDistance - distance;
+            int down_up_distance = distance;
+            directConnect(downStation, upStation, down_up_distance);
+            directConnect(downdownStation, downStation, downdown_down_distance);
             return;
         }
-
-        if (downSection.hasUpStation()) {
-            directConnect(downSection.upSection, upSection, downSection.upDistance.calculateDistance(distance));
-            directConnect(upSection, downSection, distance);
+        if(isNewlyAdded(upStation)){
+            Section upupStation = downStation.getUp();
+            int up_upup_distance = downStation.upDistance - distance;
+            int down_up_distance = distance;
+            directConnect(downStation, upStation, down_up_distance);
+            directConnect(upStation, upupStation, up_upup_distance);
+            return;
         }
+        throw new SectionConnectException("불가능한 연결 요청입니다");
     }
 
-    private boolean hasUpStation() {
-        return this.upSection != null;
+    private static boolean isNewlyAdded(Section station) {
+        return !station.hasUp() && !station.hasDown();
     }
 
-    private boolean hasDownStation() {
-        return this.downSection != null;
+    private static boolean isThereNoConnectionBetween(Section downStation, Section upStation) {
+        return !downStation.hasUp() && !upStation.hasDown();
     }
 
-    static private void directConnect(Section upSection, Section downSection, int distance) {
-        upSection.downSection = downSection;
-        upSection.downDistance.setDistance(distance);
-        downSection.upSection = upSection;
-        downSection.upDistance.setDistance(distance);
+    public static void remove(Section section) {
+        if(section.hasUp()){
+            section.getUp().setDownIdBy(section.getDown());
+            section.getUp().downDistance = section.upDistance + section.downDistance;
+        }
+        if(section.hasDown()){
+            section.getDown().setUpIdBy(section.getUp());
+            section.getDown().upDistance = section.upDistance + section.downDistance;
+        }
+        section.setUpIdBy(null);
+        section.setUpIdBy(null);
+        section.upDistance = 0;
+        section.downDistance = 0;
     }
 
-    public void deleteSection() {
-        int distance = Distance.addDistance(upDistance, downDistance);
-        directConnect(upSection, downSection, distance);
+    public boolean hasUp(){
+        return this.upId != null;
     }
 
-    public boolean validDownDistance(int distance) {
-        return this.downDistance.validateDistance(distance);
+    public boolean hasDown(){
+        return this.downId != null;
     }
 
-    public boolean validUpDistance(int distance) {
-        return this.upDistance.validateDistance(distance);
+    // 역 사이를 체크 안하고 직접 연결
+    public static void directConnect(Section downSection, Section upSection, int distance) {
+        if(distance <= 0){
+            throw new SectionConnectException("distance는 1 이상이여야 합니다");
+        }
+        downSection.setUpIdBy(upSection);
+        downSection.setUpDistance(distance);
+        upSection.setDownIdBy(downSection);
+        upSection.setDownDistance(distance);
+        sectionDao.update(upSection);
+        sectionDao.update(downSection);
     }
 
-    public Long getDownStationId() {
-        return this.downSection.getStationId();
-    }
-
-    public Long getUpStationId() {
-        return this.upSection.getStationId();
-    }
-
-    public Long getStationId() {
-        return stationId;
+    public Long getId() {
+        return id;
     }
     public Long getLineId() {
         return lineId;
     }
 
+    public Long getStationId() {
+        return stationId;
+    }
+
+    public Section getUp() {
+        return sectionDao.getSectionBy(upId);
+    }
+
+    public Section getDown() {
+        return sectionDao.getSectionBy(downId);
+    }
+
+    public void setUpIdBy(Section section) {
+        if(section == null){
+            this.upId = null;
+            return;
+        }
+        this.upId = section.getId();
+    }
+
+    public void setDownIdBy(Section section) {
+        if(section == null){
+            this.downId = null;
+            return;
+        }
+        this.downId = section.getId();
+    }
+
+    public int getUpDistance() {
+        return upDistance;
+    }
+
+    public int getDownDistance() {
+        return downDistance;
+    }
+
+    public void setUpDistance(int upDistance) {
+        this.upDistance = upDistance;
+    }
+
+    public void setDownDistance(int downDistance) {
+        this.downDistance = downDistance;
+    }
 }

@@ -1,17 +1,13 @@
 package subway.line.section;
 
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import subway.line.Line;
-
-import java.util.List;
 
 @Repository
-public class SectionDao {
+public class SectionsDao {
     private JdbcTemplate jdbcTemplate;
 
-    public SectionDao(JdbcTemplate jdbcTemplate){ this.jdbcTemplate = jdbcTemplate; }
+    public SectionsDao(JdbcTemplate jdbcTemplate){ this.jdbcTemplate = jdbcTemplate; }
 
     public void clear() {
         jdbcTemplate.update("DELETE * from SECTION");
@@ -42,17 +38,4 @@ public class SectionDao {
         );
     }
 
-    private static RowMapper<Section> sectionMapper = ((rs, rowNum) -> new Section(
-        rs.getLong("id"),
-        rs.getLong("line_id"),
-        rs.getLong("station_id")
-    ));
-
-    public boolean has(Section section) {
-        return jdbcTemplate.queryForObject("SELECT count(*) FROM SECTION WHERE id = ?", Integer.class, section.getId()) == 1;
-    }
-
-    public int size() {
-        return jdbcTemplate.queryForObject("SELECT count(*) FROM SECTION", Integer.class);
-    }
 }
