@@ -1,12 +1,24 @@
 package subway.exceptions;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import subway.exceptions.exception.*;
+import subway.line.Line;
+import subway.line.LineDao;
+import subway.section.SectionDao;
+import subway.station.StationDao;
 
 @ControllerAdvice
 public class ExceptionController {
+    private JdbcTemplate jdbcTemplate;
+
+    ExceptionController(JdbcTemplate jdbcTemplate){
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
     @ExceptionHandler(LineNotFoundException.class)
     public ResponseEntity lineNotFoundHandle() {
         return ResponseEntity.badRequest().body("해당 노선을 찾을 수 없습니다");
@@ -17,20 +29,22 @@ public class ExceptionController {
         return ResponseEntity.badRequest().body("중복된 노선입니다");
     }
 
-    @ExceptionHandler(SectionNoStationException.class)
-    public ResponseEntity SectionNoStationException() {
-        return ResponseEntity.badRequest().body("상행역과 하행역이 모두 노선에 포함되어 있습니다.");
-        //ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    @ExceptionHandler(SubwayException.class)
+    public ResponseEntity subwayExceptionHandle(SubwayException e) {
+        return ResponseEntity.badRequest().body(e.getMessage()) ;
     }
 
-    @ExceptionHandler(SectionSameStationException.class)
-    public ResponseEntity SectionSameStationException() {
-        return ResponseEntity.badRequest().body("상행역과 하행역이 모두 노선에 포함되어 있습니다.");
-    }
 
-    @ExceptionHandler(SectionDeleteException.class)
-    public ResponseEntity SectionDeleteException() {
-        return ResponseEntity.badRequest().body("노선에 역이 존재하지 않거나, 노선에 역이 현재 2개뿐이 없습니다.");
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity Exception(Exception e) {
+        System.out.println("==================================에러 처리==================================");
+        System.out.println(e.getMessage());
+        e.printStackTrace();
+        System.out.println("==================================데이터베이스==================================");
+        jdbcTemplate.query("SELECT * FROM STATION", StationDao.stationMapper).forEach(System.out::println);
+        jdbcTemplate.query("SELECT * FROM LINE", LineDao.lineMapper).forEach(System.out::println);
+        jdbcTemplate.query("SELECT * FROM SECTION", SectionDao.sectionMapper).forEach(System.out::println);
+        System.out.println("==================================에러 처리 끝==================================");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
-
 }

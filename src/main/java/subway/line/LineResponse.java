@@ -1,10 +1,12 @@
 package subway.line;
 
+import subway.Response;
 import subway.station.StationResponse;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public class LineResponse {
+public class LineResponse extends Response {
     private Long id;
     private String name;
     private String color;
@@ -34,7 +36,13 @@ public class LineResponse {
     }
 
     public List<StationResponse> getStations() {
+        if(stations == null){
+            return new ArrayList<>();
+        }
         return stations;
     }
 
+    public void setStations(List<StationResponse> stations) {
+        this.stations = stations;
+    }
 }

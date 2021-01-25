@@ -1,29 +1,29 @@
-package subway.line.section;
+package subway.section;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import subway.line.Line;
 import subway.line.LineDao;
 import subway.line.LineResponse;
+import subway.service.SubwayService;
 
 @RestController
 public class SectionController {
-    private SectionDao sectionDao;
-    private LineDao lineDao;
+    private SubwayService subwayService;
+
+    SectionController(SubwayService subwayService){
+        this.subwayService = subwayService;
+    }
 
     @PostMapping("/lines/{lineId}/sections")
     public ResponseEntity<LineResponse> createSection(@PathVariable Long lineId, @RequestBody SectionRequest sectionRequest) {
-        Line line = lineDao.getLineBy(lineId);
-        line.connectSection(sectionRequest.getDownStationId(), sectionRequest.getUpStationId(), sectionRequest.getDistance());
-        lineDao.save(line);
+        subwayService.createSection(lineId, sectionRequest);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/lines/{lineId}/sections")
     public ResponseEntity<LineResponse> deleteSection(@PathVariable Long lineId, @RequestParam Long stationId) {
-        Line line = lineDao.getLineBy(lineId);
-        line.deleteSection(stationId);
-        lineDao.save(line);
+        subwayService.deleteSection(lineId, stationId);
         return ResponseEntity.ok().build();
     }
 

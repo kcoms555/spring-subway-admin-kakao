@@ -3,14 +3,21 @@ package subway.line;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import subway.line.section.Section;
-import subway.line.section.SectionDao;
+import subway.section.Section;
+import subway.section.SectionDao;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Repository
 public class LineDao {
+    public static final RowMapper<Line> lineMapper = ((result, rowNumber) -> new Line(
+            result.getLong("id"),
+            result.getString("name"),
+            result.getString("color"),
+            result.getInt("extra_fare")
+    ));
+
     private JdbcTemplate jdbcTemplate;
     private SectionDao sectionDao;
 
@@ -19,23 +26,47 @@ public class LineDao {
         this.sectionDao = sectionDao;
     }
 
-    public void clear() {
-        jdbcTemplate.update("DELETE * from LINE");
+    public Line create(String name, String color, Integer extraFare) {
+        jdbcTemplate.update("INSERT INTO LINE(name, color, extra_fare) VALUES(?, ?, ?)", name, color, extraFare);
+        return getLineBy(name);
     }
 
-    public Line create(String name, String color, Long upStationId, Long downStationId, int distance) {
-        jdbcTemplate.update("INSERT INTO LINE(name, color) VALUES(?, ?)", name, color);
-        Line line = getLineBy(name);
-        Section upSection = sectionDao.create(line.getId(), upStationId);
-        Section downSection = sectionDao.create(line.getId(), downStationId);
-        Section.directConnect(downSection, upSection, distance);
-        updateSections(line.getId(), upSection.getId(), downSection.getId());
-        return line;
+    public void update(Line line){
+        if (line.getName() != null) {
+            jdbcTemplate.update("UPDATE LINE SET name = ? WHERE id = ?", line.getName(), line.getId());
+        }
+        if (line.getColor() != null) {
+            jdbcTemplate.update("UPDATE LINE SET color = ? WHERE id = ?", line.getColor(), line.getId());
+        }
+    }
+
+    public Line getLineBy(String name) {
+        return jdbcTemplate.queryForObject("SELECT * FROM LINE WHERE name = ?", lineMapper, name);
+    }
+
+    public Line getLineBy(Long lineId) {
+        return jdbcTemplate.queryForObject("SELECT * FROM LINE WHERE id = ?", lineMapper, lineId);
+    }
+
+    public List<Line> getAllLines() {
+        return jdbcTemplate.query("SELECT * FROM LINE", lineMapper);
     }
 
     public void deleteBy(Long id) {
         jdbcTemplate.update("DELETE FROM LINE WHERE id = ?", id);
     }
+
+    public void clear() {
+        jdbcTemplate.update("DELETE * from LINE");
+    }
+
+    public boolean existByName(String name) {
+        Integer count = jdbcTemplate.queryForObject("SELECT count(1) FROM LINE WHERE name = ?", Integer.class, name);
+        return !count.equals(0);
+    }
+
+    /*
+
 
     public List<LineResponse> getAllLineResponses() {
         return getAllLines().stream()
@@ -43,22 +74,6 @@ public class LineDao {
                 .collect(Collectors.toList());
     }
 
-    private static RowMapper<Line> lineMapper = ((rs, rowNum) -> new Line(
-            rs.getLong("id"), rs.getString("name"), rs.getString("color"),
-            rs.getInt("extra_fare"), rs.getLong("up_section_end_point_id"), rs.getLong("down_section_end_point_id")
-    ));
-
-    public List<Line> getAllLines() {
-        return jdbcTemplate.query("SELECT * FROM LINE", lineMapper);
-    }
-
-    public Line getLineBy(String name) {
-        return jdbcTemplate.queryForObject("SELECT * FROM LINE WHERE name = ?", Line.class, name);
-    }
-
-    public Line getLineBy(Long lineId) {
-        return jdbcTemplate.queryForObject("SELECT * FROM LINE WHERE id = ?", Line.class, lineId);
-    }
 
     public void updateSections(Long lineId, Long upSectionId, Long downSectionId) {
         jdbcTemplate.update("UPDATE LINE SET up_section_end_point_id = ?, down_section_end_porint_id WHERE id = ?", upSectionId, downSectionId, lineId);
@@ -72,5 +87,6 @@ public class LineDao {
             jdbcTemplate.update("UPDATE LINE SET color = ? WHERE id = ?", lineRequest.getColor(), lineId);
         }
     }
+     */
 
 }

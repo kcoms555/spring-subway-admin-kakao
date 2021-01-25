@@ -1,18 +1,13 @@
 package subway.station;
 
-public class Station {
+import subway.ValueObject;
+
+public class Station implements ValueObject {
     private Long id;
     private String name;
 
-    public Station() {
-    }
-
     public Station(Long id, String name) {
         this.id = id;
-        this.name = name;
-    }
-
-    public Station(String name) {
         this.name = name;
     }
 
@@ -26,6 +21,14 @@ public class Station {
 
     public StationResponse toResponse() {
         return new StationResponse(id, name);
+    }
+
+    @Override
+    public String toString() {
+        return "Station{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                '}';
     }
 }
 

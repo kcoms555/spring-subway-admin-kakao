@@ -1,31 +1,35 @@
 package subway.station;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
+import subway.service.SubwayService;
 
 import java.net.URI;
 import java.util.List;
 
 @RestController
 public class StationController {
-    private StationDao stationDao;
+    private SubwayService subwayService;
+
+    StationController(SubwayService subwayService){
+        this.subwayService = subwayService;
+    }
+
     @PostMapping("/stations")
     public ResponseEntity<StationResponse> createStation(@RequestBody StationRequest stationRequest) {
-        Station newStation = stationDao.create(stationRequest.getName());
-        return ResponseEntity.created(URI.create("/stations/" + newStation.getId())).body(newStation.toResponse());
+        Station station = subwayService.createStation(stationRequest);
+        return ResponseEntity.created(URI.create("/stations/" + station.getId())).body(station.toResponse());
     }
 
     @GetMapping(value = "/stations", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<StationResponse>> showStations() {
-        return ResponseEntity.ok().body(stationDao.getStationResponses());
+        return ResponseEntity.ok().body(subwayService.getAllStations().toResponse());
     }
 
-    @DeleteMapping("/stations/{id}")
-    public ResponseEntity deleteStation(@PathVariable Long id) {
-        stationDao.deleteById(id);
+    @DeleteMapping("/stations/{lineId}")
+    public ResponseEntity deleteStation(@PathVariable Long lineId) {
+        subwayService.deleteStation(lineId);
         return ResponseEntity.noContent().build();
     }
 

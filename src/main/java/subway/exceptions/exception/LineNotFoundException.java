@@ -1,5 +1,5 @@
 package subway.exceptions.exception;
 
-public class LineNotFoundException extends RuntimeException {
+public class LineNotFoundException extends SubwayException {
 
 }

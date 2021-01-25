@@ -1,6 +1,8 @@
 package subway.station;
 
-public class StationResponse {
+import subway.Response;
+
+public class StationResponse extends Response {
     private Long id;
     private String name;
 

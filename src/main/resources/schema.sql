@@ -11,8 +11,6 @@ create table if not exists LINE
     name varchar(255) not null unique,
     color varchar(20) not null,
     extra_fare int default 0,
-    up_section_end_point_id not null,
-    down_section_end_point_id not null,
     primary key(id)
 );
 
