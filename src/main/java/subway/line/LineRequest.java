@@ -37,5 +37,4 @@ public class LineRequest {
     public int getDistance() {
         return distance;
     }
-
 }
