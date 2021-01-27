@@ -8,13 +8,14 @@ public class Stations {
     private List<Station> stations;
 
     public Stations(List<Station> stations) {
-        if(stations == null){
+        if (stations == null) {
             this.stations = new ArrayList<>();
+            return;
         }
         this.stations = stations;
     }
 
-    public List<StationResponse> toResponse(){
+    public List<StationResponse> toResponse() {
         return stations.stream()
                 .map(Station::toResponse)
                 .collect(Collectors.toList());

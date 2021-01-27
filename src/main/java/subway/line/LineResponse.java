@@ -11,7 +11,7 @@ public class LineResponse extends Response {
     private String name;
     private String color;
     private int extraFare;
-    private List<StationResponse> stations;
+    private List<StationResponse> stationResponses;
 
     public LineResponse() {
     }
@@ -20,7 +20,7 @@ public class LineResponse extends Response {
         this.id = id;
         this.name = name;
         this.color = color;
-        this.stations = stations;
+        this.stationResponses = stations;
     }
 
     public Long getId() {
@@ -35,14 +35,14 @@ public class LineResponse extends Response {
         return color;
     }
 
-    public List<StationResponse> getStations() {
-        if(stations == null){
+    public List<StationResponse> getStationResponses() {
+        if (stationResponses == null) {
             return new ArrayList<>();
         }
-        return stations;
+        return stationResponses;
     }
 
-    public void setStations(List<StationResponse> stations) {
-        this.stations = stations;
+    public void setStationResponses(List<StationResponse> stationResponses) {
+        this.stationResponses = stationResponses;
     }
 }

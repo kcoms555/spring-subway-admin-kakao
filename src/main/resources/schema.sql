@@ -18,10 +18,8 @@ create table if not exists SECTION
 (
     id bigint auto_increment not null,
     line_id bigint not null,
-    station_id bigint not null,
-    up_section_id bigint,
-    down_section_id bigint,
-    up_distance int default 0,
-    down_distance int default 0,
+    up_station_id bigint not null,
+    down_station_id bigint not null,
+    distance int default 0,
     primary key(id)
 );
